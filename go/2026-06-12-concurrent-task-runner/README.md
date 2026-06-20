@@ -145,6 +145,7 @@ go test -race -v ./...
 
 ```
 ## Result
+![alt text](image.png)
 
 ## 📚 Lessons Learnt
 
