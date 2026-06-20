@@ -5,7 +5,7 @@
 **Source:** boot.dev
 **Concepts:** goroutines, channels, worker pools, `sync.Mutex`, `sync.WaitGroup`, generics
 
-## 🎯 The Problem (one sentence)
+## 🎯 The Problem
 
 Implement a generic `RunTasks[T Task](tasks []T, workerCount int) map[int]int` that executes a batch of tasks concurrently using a fixed-size worker pool, and returns each task's result keyed by its ID — without data races.
 
@@ -116,6 +116,7 @@ func RunTasks[T Task](tasks []T, workerCount int) map[int]int {
 Step by step:
 
 First we need 2 goroutines:
+
 **Main goroutine**:
 
   1. Spawns workerCount goroutines (they wait on the channel)
