@@ -137,6 +137,14 @@ The loop starts *exactly* `workerCount` times. In the first iteration, we increm
 
 We then move to the next loop in the main goroutine. This loop is responsible from extracting task from the `tasks` slice using `range` and sending it to our `taskCh` channel. Once the first task is sent on the channel, one of our worker goroutine is signalled and it receives the task from the `taskCh` channel. The goroutine then goes ahead to run `task.Execute()` and `task.ID()` storing them into the `value` and `id`. We then lock our `result` map to avoid data races when we carrying out append operation on our `result` map. Then `defer wg.Done()` is executed to decrement the `WaitGroup` counter and tell the program that particular goroutine is done. This happens until the second sending loop in the main goroutine ends and tasks on the `taskCh` channel for any worker goroutine to process. Then the `close(taskCh)` is executed to signify to the receiver goroutine that there are no longer task to work on. Finally, once our `WaitGroup` counter becomes `0`, this means all the worker goroutines have been executed. Then `wg.Wait()` unblocks, main continues and the program returns our `result` map as the output.
 
+## Running Test Code
+```
+cd daily-grind/go/2026-06-12-concurrent-task-runner/
+
+go test -race -v ./...
+
+```
+## Result
 
 ## 📚 Lessons Learnt
 
