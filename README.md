@@ -31,7 +31,8 @@ daily-grind/
 
 | Date | Problem | Language | Key Concepts |
 |------|---------|----------|--------------|
-| 2026-06-12 | [Concurrent Task Runner](go/2026-06-12-concurrent-task-runner/) | Go | goroutines, channels, worker pools, mutex, generics |
+| 2026-06-12 | [Concurrent Task Runner](Go/2026-06-12-concurrent-task-runner/) | Go | goroutines, channels, worker pools, mutex, generics |
+| 2026-08-09 | [Build Overlapping Token Chunks](Python/2026-08-09-Build-Overlapping-Tokens-Chunks/) | Python | Loops (while),list slicing, type hints, error handling, input validation, iteration, overlapping windows, boundary conditions |
 
 ## Topics covered so far
 
