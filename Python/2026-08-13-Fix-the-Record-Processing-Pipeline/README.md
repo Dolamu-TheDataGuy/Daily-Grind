@@ -1,8 +1,11 @@
 # Fix the Record Processing Pipeline
 
 **Date:** 2026-08-13
+
 **Language:** Python
+
 **Source:** boot.dev
+
 **Concepts:** OOP · debugging · `dict.get()` · boolean · mutability · list comprehension · pipeline pattern · type guards
 
 ---
