@@ -3,7 +3,7 @@
 **Date:** 2026-08-13
 **Language:** Python
 **Source:** boot.dev
-**Concepts:** OOP · debugging · `dict.get()` · boolean subclass of int · mutability · list comprehension · pipeline pattern · type guards
+**Concepts:** OOP · debugging · `dict.get()` · boolean · mutability · list comprehension · pipeline pattern · type guards
 
 ---
 
@@ -161,6 +161,8 @@ Assigning a new key into a dict modifies the original object everywhere it's ref
 **4. List comprehensions can replace for-loop-and-append patterns.**
 The processor `process` methods and the Pipeline validation loop all follow the same shape: create an empty list, loop, conditionally append. That pattern compresses cleanly into a list comprehension:
 
+We can refactor that segment of the code this way
+
 ```python
 # For-loop version
 output = []
@@ -185,4 +187,3 @@ A pipeline that doesn't feed each stage's output into the next stage isn't a pip
 - [Python docs — `dict.get()`](https://docs.python.org/3/library/stdtypes.html#dict.get)
 - [Python docs — Built-in Types: Boolean](https://docs.python.org/3/library/stdtypes.html#boolean-type-bool)
 - [Python docs — `copy` — Shallow and deep copy](https://docs.python.org/3/library/copy.html)
-- Next to explore: rewrite the processor `process` methods using list comprehensions and compare readability — when does a comprehension help, and when does it hurt?

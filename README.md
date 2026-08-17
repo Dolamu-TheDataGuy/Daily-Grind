@@ -34,7 +34,9 @@ daily-grind/
 | 2026-06-12 | [Concurrent Task Runner](Go/2026-06-12-concurrent-task-runner/) | Go | goroutines, channels, worker pools, mutex, generics |
 | 2026-08-09 | [Build Overlapping Token Chunks](Python/2026-08-09-Build-Overlapping-Tokens-Chunks/) | Python | Loops (while),list slicing, type hints, error handling, input validation, iteration, overlapping windows, boundary conditions |
 | 2026-08-10 | [Pull Request Merge Gate](Python/2026-08-10-Pull-Request-Merge-Gate/) | Python | Dictionary, list, set, For loops, match casing, enumerate, indexing |
-| 2026-08-12| [Course Enrollment Coverage](SQL/2026-08-12-Course-Enrollment/) | SQL | Table, JOINS, GROUPBY, ORDERBY |
+| 2026-08-11 | [Agent Function Calling](Python/2026-08-11-Agent-Function-Calling/) | Python | AI, Agents, Systems Prompt |
+| 2026-08-12 | [Course Enrollment Coverage](SQL/2026-08-12-Course-Enrollment/) | SQL | Table, JOINS, GROUPBY, ORDERBY |
+| 2026-08-13 | [Fix the Record Processing Pipeline](Python/2026-08-13-Fix-the-Record-Processing-Pipeline/) | Python | Dictionaries, loops, Data types, List Comprehensions |
 
 ## Topics covered so far
 
