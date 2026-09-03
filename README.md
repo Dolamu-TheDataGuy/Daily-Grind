@@ -37,6 +37,7 @@ daily-grind/
 | 2026-08-11 | [Agent Function Calling](Python/2026-08-11-Agent-Function-Calling/) | Python | AI, Agents, Systems Prompt |
 | 2026-08-12 | [Course Enrollment Coverage](SQL/2026-08-12-Course-Enrollment/) | SQL | Table, JOINS, GROUPBY, ORDERBY |
 | 2026-08-13 | [Fix the Record Processing Pipeline](Python/2026-08-13-Fix-the-Record-Processing-Pipeline/) | Python | Dictionaries, loops, Data types, List Comprehensions |
+| 2026-08-14 | [Mailroom Receivers](Go/2026-08-14-Mailroom-Receivers/) | Go | value receivers, pointer receivers, mutability, nil-pointer safety, automatic referencing & dereferencing, method sets, struct copy cost |
 
 ## Topics covered so far
 
