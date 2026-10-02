@@ -6,7 +6,7 @@
 
 **Source:** boot.dev
 
-**Concepts:** tagged unions · `enum`-based type discrimination · heap allocation with `malloc`/`free` · manual buffer-length arithmetic · `memcpy` vs `strcpy` · defensive NULL checks · AddressSanitizer / UndefinedBehaviorSanitizer
+**Concepts:** struct · tagged unions · `enum`-based type discrimination · heap allocation with `malloc`/`free` · manual buffer-length arithmetic · `memcpy` vs `strcpy` · defensive NULL checks · AddressSanitizer / UndefinedBehaviorSanitizer
 
 ---
 

@@ -24,7 +24,7 @@ daily-grind/
 │       └── README.md      ← the write-up
 ├── Python/
 ├── SQL/
-├── c/                     ← planned
+├── C/
 └── TEMPLATE.md            ← write-up template for every entry
 ```
 
@@ -48,6 +48,8 @@ daily-grind/
 | 2026-08-23 | [Build Semantic Chunks](Python/2026-08-23-Build-Semantic-Chunks/) | Python | list slicing, token positions, overlap windows, `enumerate()`, range vs while loops, list comprehension, `zip()`, boundary computation, separation of concerns |
 | 2026-08-24 | [Fix the Inventory Summary](Python/2026-08-24-Fix-The-Inventory-Summary/) | Python | type hints, `Optional[T]`, `None`-handling, shallow vs deep copy, input-mutation prevention, nested dictionaries, `dict.get()` defaults, defensive programming |
 | 2026-08-25 | [Validate Project Path](Python/2026-08-25-Validate-Project-Path/) | Python | `os.path`, path normalization (`normpath`/`abspath`/`join`), `commonpath` prefix checking, directory containment, relative vs absolute paths, security pitfalls, exception handling |
+| 2026-09-03 | [Fix Player Positions (Pointers)](C/2026-09-03-Fix-Player-Position-Pointers/) | C | pointers, pointer arithmetic, dereferencing (`*ptr`), address-of (`&`), `NULL` as "no valid address", in-place array mutation, C99 vs C89 for-loop declarations |
+| 2026-09-04 | [Fix snek_add](C/2026-09-04-Fix/) | C | struct, tagged unions, `enum`-based type discrimination, heap allocation with `malloc`/`free`, manual buffer-length arithmetic, `memcpy` vs `strcpy`, defensive NULL checks, AddressSanitizer / UndefinedBehaviorSanitizer |
 
 ## Topics covered so far
 
@@ -71,6 +73,9 @@ daily-grind/
 
 **SQL**
 `tables` · `INNER JOIN` · `LEFT JOIN` · `RIGHT JOIN` · `FULL JOIN` · `GROUP BY` · `COUNT` · `ORDER BY`
+
+**C language**
+`pointers` · `pointer arithmetic` · `dereferencing` · `address-of (&)` · `structs` · `tagged unions` · `enum`-based type discrimination · `malloc`/`free` heap allocation · `memcpy` vs `strcpy` · `NULL` checks · AddressSanitizer / UndefinedBehaviorSanitizer
 
 **Software practices**
 `error handling` · `input validation` · `guard clauses` · `defensive programming` · `shallow vs deep copy` · `input-mutation prevention` · `immutability` · `safe out-of-bounds handling` · `path-traversal security` · `separation of concerns` · `self-documenting code`
