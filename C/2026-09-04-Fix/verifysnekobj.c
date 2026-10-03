@@ -22,6 +22,8 @@ static int tests_passed = 0;
         }                                                     \
     } while (0)
 
+
+
 #define CHECK_PTR_NOT_NULL(actual, msg)                                   \
     do                                                                    \
     {                                                                     \
@@ -35,6 +37,8 @@ static int tests_passed = 0;
             printf("    FAIL: %s -- expected non-NULL, got NULL\n", msg); \
         }                                                                 \
     } while (0)
+
+
 
 #define CHECK_NULL(actual, msg)                                           \
     do                                                                    \
@@ -65,6 +69,8 @@ static int tests_passed = 0;
         }                                                           \
     } while (0)
 
+
+    
 /* ===== the five cases from the boot.dev main.c, reproduced in plain C ===== */
 
 void test_snek_add_ints(void)
