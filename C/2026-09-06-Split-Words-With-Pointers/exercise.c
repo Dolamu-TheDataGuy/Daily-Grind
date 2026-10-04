@@ -65,6 +65,7 @@ char **split_words(const char *input, int *out_count)
                 free(string_array[j]);
             }
             free(string_array);
+            *out_count = 0;
             return NULL;
         }
 
