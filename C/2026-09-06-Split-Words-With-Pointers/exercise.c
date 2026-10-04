@@ -45,10 +45,10 @@ char **split_words(const char *input, int *out_count)
             input++;
         }
 
-        if (*input == '\0')
-        {
-            continue;
-        }
+        // if (*input == '\0')
+        // {
+        //     break;
+        // }
 
         // get length of word
         const char *start = input;
