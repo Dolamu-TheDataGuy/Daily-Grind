@@ -51,6 +51,17 @@ daily-grind/
 | 2026-09-03 | [Fix Player Positions (Pointers)](C/2026-09-03-Fix-Player-Position-Pointers/) | C | pointers, pointer arithmetic, dereferencing (`*ptr`), address-of (`&`), `NULL` as "no valid address", in-place array mutation, C99 vs C89 for-loop declarations |
 | 2026-09-04 | [Fix snek_add](C/2026-09-04-Fix/) | C | struct, tagged unions, `enum`-based type discrimination, heap allocation with `malloc`/`free`, manual buffer-length arithmetic, `memcpy` vs `strcpy`, defensive NULL checks, AddressSanitizer / UndefinedBehaviorSanitizer |
 | 2026-09-05 | [Pointer Practice: Arrays and Structs](C/2026-09-05-Pointer-Practise-Array-Structs/) | C | pointer traversal (`p++`, `*p`), half-open ranges `[begin, end)`, pointer-as-iterator vs array indexing, pointer subtraction (`end - begin`), struct pointers and `->`, sentinel-return pattern, AddressSanitizer / UndefinedBehaviorSanitizer |
+| 2026-09-06 | [Split Words with Pointers](C/2026-09-06-Split-Words-With-Pointers/) | C | `char **` (array of C strings), two-pass string scanning, pointer subtraction for length, jagged heap arrays, manual null-termination, defensive bounds against pass disagreement |
+| 2026-09-07 | [Fix Inventory Pointers](C/2026-09-07-Fix-Inventory-Pointers/) | C | nested heap allocation, struct owning a heap array, bounded string copying, stack-to-heap struct copy, never returning pointers to stack memory, cleanup on partial failure, `free` |
+| 2026-09-08 | [Fix Stat Buff Pointers](C/2026-09-08-Fix-Staff-Buff-Pointers/) | C | pointer-returning search (`&stats[i]`), two-pass count-then-allocate, output-parameter resets on every return path, `malloc(count * sizeof(int))` |
+| 2026-09-09 | [Dynamic Int Array](C/2026-09-09-Dynamic-Int-Array/) | C | `malloc`/`realloc`/`free`, length vs. capacity, geometric (doubling) growth, shifting elements on insert, failure-safe `realloc` |
+| 2026-09-10 | [Traverse Arrays with Pointers](C/2026-09-10-Traverse-Arrays-with-Pointers/) | C | array decay to pointer, `size_t` for lengths, signed/unsigned comparison pitfalls (`-Wsign-compare`), null-terminator traversal, indexing vs. pointer-walking |
+| 2026-09-11 | [Analyze Sensor Readings with Pointers](C/2026-09-11-Analyze-Sensor-Readings-with-Pointers/) | C | combined index-and-pointer loops, half-open range `[start, end)` with two pointers, in-place mutation through a pointer, pure-pointer traversal |
+| 2026-09-12 | [Fix Quest Pointers](C/2026-09-12-Fix-Quest-Pointers/) | C | direct heap writes (no stack intermediate), shallow pointer storage vs. deep string copy, consistent `NULL` guards, `const` read-only accessors |
+| 2026-09-13 | [Filter With Pointers](C/2026-09-13-Filter-With-Pointers/) | C | read/write cursor (slow-fast) pattern, in-place array and string compaction, order-preserving filtering, manual null-termination |
+| 2026-09-14 | [Implement a Pointer-Based Playlist](C/2026-09-14-Implement-a-Pointer-Based-Playlist/) | C | singly linked lists, pointer-to-pointer (`Song **`), heap ownership, pointer rewiring without a "previous" pointer, list cleanup |
+| 2026-09-15 | [Compact Spaces (Pointer Arithmetic)](C/2026-09-15-Compact-Spaces-Pointer-Arithmetic/) | C | pointer arithmetic, read/write cursors, in-place string mutation, array decay, stack buffers, null termination |
+| 2026-09-16 | [Pointer Workshop: Array Stats and Clamping](C/2026-09-16-Pointer-Workshop-ArrayStats-Clamping/) | C | pointer arithmetic over arrays, writing through a struct pointer, `const`-correctness, signed/unsigned comparison |
 
 ## Topics covered so far
 
@@ -76,7 +87,7 @@ daily-grind/
 `tables` · `INNER JOIN` · `LEFT JOIN` · `RIGHT JOIN` · `FULL JOIN` · `GROUP BY` · `COUNT` · `ORDER BY`
 
 **C language**
-`pointers` · `pointer arithmetic` · `dereferencing` · `address-of (&)` · `structs` · `tagged unions` · `enum`-based type discrimination · `malloc`/`free` heap allocation · `memcpy` vs `strcpy` · `NULL` checks · AddressSanitizer / UndefinedBehaviorSanitizer · `pointer-as-iterator` · half-open ranges `[begin, end)` · pointer subtraction · struct pointers & `->` · sentinel-return pattern
+`pointers` · `pointer arithmetic` · `dereferencing` · `address-of (&)` · `structs` · `tagged unions` · `enum`-based type discrimination · `malloc`/`free` heap allocation · `memcpy` vs `strcpy` · `NULL` checks · AddressSanitizer / UndefinedBehaviorSanitizer · `pointer-as-iterator` · half-open ranges `[begin, end)` · pointer subtraction · struct pointers & `->` · sentinel-return pattern · `char **` arrays of strings · two-pass scan-then-allocate · nested heap ownership · cleanup on partial allocation failure · returning pointers into arrays (`&a[i]`) · output parameters · `realloc` & failure-safe growth · length vs. capacity · geometric growth · array decay · `size_t` & signed/unsigned pitfalls (`-Wsign-compare`) · read/write cursor (slow-fast) pattern · in-place array/string compaction · shallow vs. deep string copy · `const`-correctness · singly linked lists · pointer-to-pointer (`**`) · pointer rewiring
 
 **Software practices**
 `error handling` · `input validation` · `guard clauses` · `defensive programming` · `shallow vs deep copy` · `input-mutation prevention` · `immutability` · `safe out-of-bounds handling` · `path-traversal security` · `separation of concerns` · `self-documenting code`
