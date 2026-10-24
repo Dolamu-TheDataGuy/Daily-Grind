@@ -1,19 +1,21 @@
 # Daily-Grind: Building a BM25 Search Ranker in Python
 
+Date: 2026-09-17-BM25-Ranker
+
 ## 1. Project Overview
 
-This project implements a keyword-based document ranking system using **BM25 (Best Matching 25)**, a probabilistic information retrieval algorithm used to estimate the relevance of documents to a search query.
+This project implements a keyword-based search ranker using **BM25 (Best Matching 25)**, a probabilistic information retrieval algorithm used to rank documents according to their relevance to a search query.
 
-The objective was to implement a basic search ranker from first principles using Python's built-in data structures, loops, and mathematical operations.
+The objective was to implement a simple search ranker from first principles using Python's built-in data structures, loops, and mathematical operations.
 
-Rather than relying on an external search library, I implemented the following components:
+Rather than relying on an external search library, I implemented four core components:
 
-- A tokenizer to convert text into searchable terms.
-- An inverted index to map terms to documents and record their frequencies.
-- A BM25 scoring function to calculate document relevance.
-- A sorting mechanism to rank documents by their calculated scores.
+- **Tokenization:** Converts text into searchable terms.
+- **Inverted indexing:** Maps terms to documents and records their frequencies.
+- **BM25 scoring:** Calculates the relevance score of each document.
+- **Result ranking:** Sorts documents by score, with a deterministic tie-breaking rule.
 
-This exercise also provides a foundation for understanding Retrieval-Augmented Generation (RAG), where relevant information is retrieved from a document collection before being supplied to a language model.
+This exercise provides a foundation for understanding Retrieval-Augmented Generation (RAG), where relevant information is retrieved from a document collection before being passed to a language model.
 
 ### Learning objectives
 
@@ -21,11 +23,13 @@ By completing this task, I aimed to understand how to:
 
 - Tokenize queries and documents consistently.
 - Build an inverted index using dictionaries and loops.
-- Distinguish term frequency (TF), document frequency (DF), and inverse document frequency (IDF).
-- Translate the BM25 mathematical formula into Python.
+- Distinguish Term Frequency (TF), Document Frequency (DF), and Inverse Document Frequency (IDF).
+- Translate the BM25 formula into Python.
 - Understand term-frequency saturation and document-length normalization.
-- Sort documents by relevance using deterministic tie-breaking.
+- Sort search results using relevance scores and deterministic tie-breaking.
 - Identify correctness issues, refactoring opportunities, and scalability considerations.
+
+---
 
 ## 2. My Implementation
 
@@ -103,6 +107,8 @@ def bm25_rank(query, docs, k1=1.5, b=0.75):
     return result
 ```
 
+---
+
 ## 3. Understanding the Tokenizer
 
 The `tokenize()` function converts text into lowercase alphanumeric tokens.
@@ -119,27 +125,69 @@ Output:
 ["python", "is", "great", "python", "supports", "ai"]
 ```
 
-The function works in five steps:
+### How it works
 
-1. Initializes an empty list called `tokens` and a string called `current`.
-2. Converts the input to lowercase and iterates through each character.
-3. Appends alphanumeric characters to the current token.
-4. When a separator appears, appends the completed token and resets `current`.
-5. Appends the final token after the loop if one remains.
+**Step 1: Initialize the variables.**
 
-The final step is necessary because the text may end with a letter or digit rather than punctuation.
+```python
+tokens = []
+current = ""
+```
 
-The tokenizer ensures that `Python`, `PYTHON`, and `python` are treated as the same term. It also splits punctuation-separated expressions, such as `data-driven`, into `data` and `driven`.
+`tokens` stores completed words, while `current` accumulates the characters of the word being processed.
 
-**Key lesson:** Tokenization defines what the retrieval system considers a term. Since both queries and documents use the same tokenizer, they follow consistent normalization rules.
+**Step 2: Normalize the text and iterate through its characters.**
 
-The implementation is intentionally simple. It does not perform stemming, lemmatization, or stop-word removal, and it treats punctuation as a token boundary. These are design choices rather than necessarily incorrect behavior.
+```python
+for ch in text.lower():
+```
+
+Converting text to lowercase ensures that `Python`, `PYTHON`, and `python` are treated as the same term.
+
+**Step 3: Identify characters that belong to a token.**
+
+```python
+if ch.isalnum():
+    current += ch
+```
+
+The `isalnum()` method recognizes letters and digits. When a character is not alphanumeric, it acts as a token boundary.
+
+For example, `data-driven` becomes `["data", "driven"]`.
+
+**Step 4: Store completed tokens.**
+
+```python
+else:
+    if current != "":
+        tokens.append(current)
+        current = ""
+```
+
+This prevents empty strings from being added to the token list when multiple separators appear consecutively.
+
+**Step 5: Capture the final token.**
+
+```python
+if current != "":
+    tokens.append(current)
+```
+
+Without this final check, a word ending at the end of the input could be omitted because no separator would trigger its addition to the list.
+
+### Lessons from tokenization
+
+Tokenization defines what the retrieval system considers a term. Since both queries and documents use the same tokenizer, they follow consistent normalization rules.
+
+The implementation is intentionally simple. It does not perform stemming, lemmatization, or stop-word removal. Those techniques could be introduced later if the retrieval task required them.
+
+---
 
 ## 4. Understanding the Inverted Index
 
 An inverted index maps each unique term to the documents containing it and the frequency of that term in each document.
 
-Consider this collection:
+Consider the following tokenized documents:
 
 ```python
 docs_tokens = [
@@ -149,7 +197,7 @@ docs_tokens = [
 ]
 ```
 
-The resulting index is:
+The inverted index would be:
 
 ```python
 {
@@ -159,11 +207,10 @@ The resulting index is:
 }
 ```
 
-The structure can be interpreted as follows:
+The structure has two levels:
 
-- The outer dictionary key is a term.
-- The inner dictionary key is a document ID.
-- The inner dictionary value is the number of occurrences of the term in that document.
+- The outer dictionary maps a term to its postings.
+- The inner dictionary maps document IDs to term frequencies.
 
 For example:
 
@@ -171,11 +218,11 @@ For example:
 "python": {0: 2, 1: 1}
 ```
 
-means that `python` occurs twice in document 0 and once in document 1.
+This means that `python` appears twice in document 0 and once in document 1.
 
-### How my index-building function works
+### How my implementation builds the index
 
-The function first iterates through each document and creates a temporary dictionary called `counts`.
+First, the function iterates through the documents and counts the occurrences of each term:
 
 ```python
 counts = {}
@@ -187,47 +234,54 @@ for term in tokens:
         counts[term] = 1
 ```
 
-This calculates the frequency of each unique term in the current document.
-
 It then transfers those counts into the global index:
 
 ```python
 for key in counts:
     if key not in index:
         index[key] = {}
+
     index[key][doc_id] = counts[key]
 ```
 
-The two-stage process separates counting terms within a document from storing their frequencies across the collection.
+This two-stage approach separates counting terms within a document from storing their frequencies across the collection.
 
-### Why this structure matters
+### Why the inverted index matters
 
-The inverted index provides the information required to calculate TF and DF.
+The index provides the information needed to calculate TF and DF:
 
-- TF is retrieved from the inner dictionary using a document ID.
-- DF is calculated by counting the number of document entries for a term.
+```python
+tf = index[term].get(doc_id, 0)
+df = len(index[term])
+```
 
-This is a central design decision in the solution: the data structure is organized around terms because the ranking algorithm needs to determine which documents contain each query term.
+TF is retrieved for a specific document, while DF is calculated by counting the number of distinct document entries for a term.
 
-## 5. TF, DF, and IDF: The Three Concepts Behind BM25
+The inverted index is therefore not just a storage structure. It is the foundation from which the BM25 ranking function obtains the statistics it needs.
 
-These three measurements are fundamental to understanding the scoring formula.
+---
 
-Although they are related, they answer different questions.
+## 5. Understanding TF, DF, and IDF
 
-<text> </text>
+TF, DF, and IDF are three fundamental concepts in information retrieval. They are related, but they measure different things.
+
+- **TF measures how often a term occurs in a particular document.**
+- **DF measures how many documents contain that term.**
+- **IDF uses DF to estimate how informative the term is across the collection.**
+
+Understanding their relationship explains why your implementation uses an inverted index and how the BM25 score is calculated.
 
 ### 5.1 Term Frequency (TF)
 
-**Term frequency measures how many times a particular term occurs within a particular document.**
+Term Frequency measures the number of times a particular term occurs within an individual document.
 
-In your implementation:
+In my implementation:
 
 ```python
 tf = index[term].get(doc_id, 0)
 ```
 
-Suppose the query is `python` and the document collection is:
+Consider this collection:
 
 ```python
 docs = [
@@ -237,47 +291,33 @@ docs = [
 ]
 ```
 
-The term frequencies are:
+The term frequencies for `python` are:
 
 | Document | Occurrences of `python` | TF |
 |---|---|---:|
-| Document 0 | `python python` | 2 |
-| Document 1 | `python` | 1 |
-| Document 2 | None | 0 |
-
-TF is document-specific. It tells the ranking function how often the query term appears in the document being scored.
+| Document 0 | Two occurrences | 2 |
+| Document 1 | One occurrence | 1 |
+| Document 2 | No occurrences | 0 |
 
 #### Why TF matters
 
-If a document mentions a query term several times, it may be more relevant to that query than a document mentioning it only once.
+A document that mentions a query term multiple times may be more relevant than one that mentions it only once.
 
-However, repetition alone is not a reliable measure of relevance. A document should not necessarily rank dramatically higher simply because it repeats the same word many times.
+However, repeating a word indefinitely should not necessarily increase relevance indefinitely. BM25 therefore incorporates TF into a saturation formula rather than using the raw count as the entire score.
 
-This is why BM25 incorporates TF into a saturation formula rather than using the raw count as the entire relevance score.
-
-**In my code, TF determines the strength of the term's contribution to the current document's score.**
+In my implementation, TF determines the frequency component of the current document's BM25 contribution.
 
 ### 5.2 Document Frequency (DF)
 
-**Document frequency measures the number of distinct documents in the collection that contain a particular term.**
+Document Frequency measures the number of distinct documents in the collection that contain a particular term.
 
-In your implementation:
+In my implementation:
 
 ```python
 df = len(index[term])
 ```
 
-Using the same document collection:
-
-```python
-docs = [
-    "python python search",
-    "python search engine",
-    "search engine"
-]
-```
-
-The document frequencies are:
+Using the same collection:
 
 | Term | Documents containing the term | DF |
 |---|---|---:|
@@ -285,29 +325,25 @@ The document frequencies are:
 | `search` | 0, 1, 2 | 3 |
 | `engine` | 1, 2 | 2 |
 
-Notice the distinction between TF and DF.
+Notice the difference between TF and DF.
 
-The term `python` occurs twice in document 0, but that does not mean its DF is 2 because it occurs twice. Its DF is 2 because the term appears in two distinct documents.
+The term `python` appears twice in document 0, but its DF is not 2 because it appears twice in that document. Its DF is 2 because it appears in two distinct documents.
 
-Similarly, `search` appears once in each of three documents, so its DF is 3.
+Likewise, `search` has a DF of 3 because all three documents contain it.
 
 #### Why DF matters
 
-DF tells us how widespread a term is across the collection.
+DF tells us how widespread a term is across the document collection.
 
-A term appearing in almost every document may be less useful for distinguishing one document from another. A term appearing in only a small number of documents may provide a stronger signal about which documents are relevant.
+A term found in almost every document may be less useful for distinguishing one document from another. A term found in only a few documents may provide a stronger signal about which documents are relevant.
 
-DF is therefore not a direct measure of the relevance of an individual document. Instead, it supplies a collection-level statistic used to calculate IDF.
-
-**In my code, DF determines how informative a query term is relative to the entire document collection.**
+DF is not itself the relevance score of an individual document. Instead, it supplies the collection-level statistic used to calculate IDF.
 
 ### 5.3 Inverse Document Frequency (IDF)
 
-**Inverse document frequency uses document frequency to estimate how informative a term is across the collection.**
+Inverse Document Frequency uses document frequency to estimate how informative a term is across the collection.
 
-In simple terms, it helps distinguish common terms from relatively rare terms.
-
-Your implementation calculates IDF using:
+My implementation calculates IDF using:
 
 ```python
 idf = math.log(
@@ -317,198 +353,174 @@ idf = math.log(
 
 The formula is:
 
-\[
-\operatorname{IDF}(t)=
-\ln\left(
-1+\frac{N-df(t)+0.5}{df(t)+0.5}
-\right)
-\]
-
-where:
-
-- \(N\) is the total number of documents.
-- \(df(t)\) is the number of documents containing term \(t\).
-- \(\ln\) is the natural logarithm.
-
-The constants \(0.5\) are part of this smoothed BM25 IDF variant. The additional \(1\) inside the logarithm keeps the IDF non-negative for terms found in the collection.
-
-#### Working through the calculation
-
-Suppose there are three documents:
-
-\[
-N=3
-\]
-
-For the term `python`, which appears in two documents:
-
-\[
-df(\text{python})=2
-\]
-
-Substituting these values:
-
-\[
-\operatorname{IDF}(\text{python})
-=
-\ln\left(
-1+\frac{3-2+0.5}{2+0.5}
-\right)
-\]
-
-\[
-=\ln(1.6)\approx 0.4700
-\]
-
-For `search`, which appears in all three documents:
-
-\[
-\operatorname{IDF}(\text{search})
-=
-\ln\left(
-1+\frac{3-3+0.5}{3+0.5}
-\right)
-\]
-
-\[
-=\ln(1.142857)\approx 0.1335
-\]
-
-The IDF of `python` is higher than that of `search` because `python` appears in fewer documents.
-
-This does not mean `python` is always more important than `search`. Its relative importance depends on the collection's document distribution.
-
-#### Why IDF matters
-
-Imagine searching a large collection of technical documents for the word `system`. If the word appears in almost every document, finding it provides little information about which document is most relevant.
-
-Now consider a more specialized term such as `galvanization`. If that term occurs in only a small proportion of documents, its presence may help identify a document about corrosion protection.
-
-IDF helps the ranking function account for this difference.
-
-**In my code, IDF weights the contribution of each matching term according to how widely it is distributed across the collection.**
-
-### 5.4 TF vs DF vs IDF
-
-| Measurement | Question answered | Scope | Role in BM25 |
-|---|---|---|---|
-| TF | How often does the term occur in this document? | Individual document | Determines the term's frequency contribution |
-| DF | How many documents contain the term? | Entire collection | Supplies the statistic used to calculate IDF |
-| IDF | How informative is the term across the collection? | Entire collection | Weights the term's contribution to relevance |
-
-These measurements work together.
-
-TF considers the term's frequency in the current document. DF tells us how common the term is across the collection. IDF converts that collection-level information into a weight used by BM25.
-
-A crucial distinction is that **DF is not itself the relevance weight**. It is an input to IDF, which then contributes to the final score.
-
-### 5.5 How my inverted index supports all three concepts
-
-Consider:
-
-```python
-index = {
-    "python": {0: 2, 1: 1},
-    "search": {0: 1, 1: 1, 2: 1}
-}
+```text
+IDF(t) = ln(1 + (N - DF(t) + 0.5) / (DF(t) + 0.5))
 ```
 
-For the term `python` in document 0:
+Where:
 
-```python
-tf = index["python"].get(0, 0)
-# 2
+- `N` is the total number of documents.
+- `DF(t)` is the number of documents containing term `t`.
+- `ln` is the natural logarithm.
 
-df = len(index["python"])
-# 2
-```
+This is a common smoothed BM25 IDF variant.
 
-The total document count is:
+#### Worked example
 
-```python
+Suppose the collection contains three documents:
+
+```text
 N = 3
 ```
 
-The IDF can then be calculated from `N` and `df`.
+The term `python` appears in two documents:
 
-This shows why the inverted index is more than a storage structure. It is the foundation from which the ranking function obtains the statistics it needs.
+```text
+DF(python) = 2
+```
+
+Substituting the values into the formula:
+
+```text
+IDF(python) = ln(1 + (3 - 2 + 0.5) / (2 + 0.5))
+            = ln(1 + 1.5 / 2.5)
+            = ln(1.6)
+            ≈ 0.4700
+```
+
+Now consider `search`, which appears in all three documents:
+
+```text
+IDF(search) = ln(1 + (3 - 3 + 0.5) / (3 + 0.5))
+            = ln(1 + 0.5 / 3.5)
+            ≈ 0.1335
+```
+
+The IDF of `python` is higher because it occurs in fewer documents.
+
+#### Why IDF matters
+
+Suppose a collection contains thousands of technical documents. A common term such as `system` may appear in nearly every document. Its presence alone does little to distinguish relevant documents from irrelevant ones.
+
+A more specialized term, such as `galvanization`, may appear in a smaller proportion of the collection. Its presence can provide a stronger indication that a document discusses corrosion protection.
+
+IDF helps BM25 account for this difference.
+
+A higher IDF does not automatically make a document relevant. The term must also contribute through its frequency in that document, and the final score depends on all the query terms processed.
+
+### 5.4 TF, DF, and IDF compared
+
+| Measurement | Question answered | Scope | Role in BM25 |
+|---|---|---|---|
+| TF | How often does the term occur in this document? | Individual document | Determines the term-frequency contribution |
+| DF | How many documents contain the term? | Entire collection | Supplies the statistic used to calculate IDF |
+| IDF | How informative is the term across the collection? | Entire collection | Weights the term's contribution to relevance |
+
+The relationship can be summarized as:
+
+```text
+Inverted Index
+      |
+      +----> TF: frequency in the current document
+      |
+      +----> DF: number of documents containing the term
+                         |
+                         v
+                    IDF formula
+                         |
+                         v
+             BM25 scoring calculation
+```
+
+**Key lesson:** TF and DF are measurements; IDF is a weight derived from DF; BM25 combines IDF with a normalized TF contribution.
+
+---
 
 ## 6. Understanding the BM25 Formula
 
 BM25 combines IDF, TF, and document-length normalization.
 
-Your implementation uses the following contribution for each query term:
+The contribution of a query term to a document's score is:
 
-\[
-\operatorname{Score}(t,d)=
-\operatorname{IDF}(t)
-\frac{tf(t,d)(k_1+1)}
-{tf(t,d)+k_1\left(1-b+b\frac{dl}{avgdl}\right)}
-\]
+```text
+TermScore(t, d) =
+    IDF(t) * [TF(t, d) * (k1 + 1)]
+    ------------------------------------------------
+    TF(t, d) + k1 * (1 - b + b * DL(d) / AvgDL)
+```
 
-The final score is accumulated across the query terms processed by the implementation:
+Where:
 
-\[
-\operatorname{BM25}(q,d)
-=
-\sum_{t\in q}\operatorname{Score}(t,d)
-\]
+| Symbol | Meaning |
+|---|---|
+| `t` | Query term |
+| `d` | Current document |
+| `TF(t, d)` | Frequency of term `t` in document `d` |
+| `IDF(t)` | Inverse document frequency of term `t` |
+| `DL(d)` | Length of document `d` in tokens |
+| `AvgDL` | Average document length |
+| `k1` | Controls TF saturation |
+| `b` | Controls document-length normalization |
 
-Here:
+The total BM25 score is the sum of the contributions from the query terms processed:
 
-- \(t\) is a query term.
-- \(d\) is the current document.
-- \(tf(t,d)\) is the term frequency.
-- \(\operatorname{IDF}(t)\) is the inverse document frequency.
-- \(dl\) is the current document's token count.
-- \(avgdl\) is the average document length.
-- \(k_1\) controls TF saturation.
-- \(b\) controls document-length normalization.
+```text
+BM25(query, document) = Sum of TermScore(t, document)
+                         over the query terms
+```
+
+This corresponds to the following line in my code:
+
+```python
+score += idf * (tf * (k1 + 1)) / (
+    tf + k1 * (1 - b + b * dl / avgdl)
+)
+```
 
 ### 6.1 The role of `k1`
 
-Your default is:
+My implementation uses:
 
 ```python
 k1 = 1.5
 ```
 
-The parameter controls how quickly the effect of TF saturates.
+This parameter controls how quickly the influence of term frequency saturates.
 
-Increasing TF increases the term's contribution, but the benefit of additional occurrences diminishes as TF grows.
-
-This prevents the ranking function from treating every additional repetition as equally valuable.
+Increasing TF generally increases the term's contribution, but the benefit of additional occurrences diminishes as TF grows.
 
 ### 6.2 The role of `b`
 
-Your default is:
+My implementation uses:
 
 ```python
 b = 0.75
 ```
 
-The parameter controls the strength of document-length normalization.
+This parameter controls the strength of document-length normalization.
 
-- When `b = 0`, the document-length adjustment disappears from the TF normalization factor.
+- When `b = 0`, the document-length adjustment disappears.
 - When `b = 1`, the full length adjustment is applied.
-- At `b = 0.75`, the formula applies a substantial length adjustment.
+- When `b = 0.75`, the formula applies a substantial length adjustment.
 
-Document-length normalization matters because longer documents have more opportunities to contain a query term simply because they contain more words.
+Length normalization matters because longer documents have more opportunities to contain a query term simply because they contain more words.
 
-### 6.3 How TF, DF, and IDF interact with the other variables
+### 6.3 How the variables work together
 
-The final score reflects several influences at once:
+BM25 considers several signals:
 
-1. A higher TF generally increases the contribution, with diminishing returns.
-2. A higher IDF increases the weight of a matching term.
-3. Document length affects the normalized TF contribution.
-4. The contributions of the query terms are accumulated to calculate the document's score.
+1. Higher TF generally increases a term's contribution, with diminishing returns.
+2. Higher IDF increases the weight of a matching term.
+3. Document length influences the normalized TF contribution.
+4. The contributions of the query terms are accumulated into the document's final score.
 
-A document is therefore not ranked solely by how often a word occurs. Its score also depends on how common the word is across the collection and how long the document is.
+Therefore, a document is not ranked solely by the number of matching words. Its score also depends on how widely those words occur across the collection and how long the document is relative to the average.
 
-## 7. A Complete BM25 Example
+---
 
-Consider:
+## 7. A Complete BM25 Calculation
+
+Consider the following documents:
 
 ```python
 docs = [
@@ -520,13 +532,31 @@ docs = [
 query = "python"
 ```
 
-The collection statistics are:
+### Step 1: Calculate the collection statistics
 
-\[
-N=3,\qquad avgdl=\frac{8}{3}
-\]
+There are three documents:
 
-The document lengths are:
+```text
+N = 3
+```
+
+Their token lengths are:
+
+```text
+Document 0: 3 tokens
+Document 1: 3 tokens
+Document 2: 2 tokens
+```
+
+Therefore:
+
+```text
+AvgDL = (3 + 3 + 2) / 3
+      = 8 / 3
+      ≈ 2.6667
+```
+
+### Step 2: Calculate TF and DF
 
 | Document ID | Length | TF for `python` | DF for `python` |
 |---|---:|---:|---:|
@@ -534,31 +564,43 @@ The document lengths are:
 | 1 | 3 | 1 | 2 |
 | 2 | 2 | 0 | 2 |
 
-The document frequency is the same for all three rows because it describes the term's occurrence across the collection, not within the individual document.
+DF is the same in every row because it describes the term's distribution across the collection, not its frequency within an individual document.
 
-The IDF is approximately:
+### Step 3: Calculate IDF
 
-\[
-\operatorname{IDF}(\text{python})=0.4700
-\]
+```text
+IDF(python) = ln(1 + (3 - 2 + 0.5) / (2 + 0.5))
+            = ln(1.6)
+            ≈ 0.4700
+```
 
-For document 0, the term occurs twice:
+### Step 4: Calculate the score for document 0
 
-\[
-\operatorname{Score}(\text{python},d_0)
-\approx 0.6463
-\]
+Document 0 contains `python` twice.
 
-For document 1, the term occurs once:
+Using `k1 = 1.5`, `b = 0.75`, `DL = 3`, and `AvgDL = 8/3`:
 
-\[
-\operatorname{Score}(\text{python},d_1)
-\approx 0.4700
-\]
+```text
+TermScore(python, document 0)
+    = 0.4700 * [2 * (1.5 + 1)]
+      / [2 + 1.5 * (1 - 0.75 + 0.75 * 3 / (8/3))]
 
-Document 2 does not contain the term, so its score is zero.
+    ≈ 0.6463
+```
 
-The expected ranking, with scores rounded for presentation, is:
+### Step 5: Calculate the score for document 1
+
+Document 1 contains `python` once:
+
+```text
+TermScore(python, document 1) ≈ 0.4700
+```
+
+### Step 6: Calculate the score for document 2
+
+Document 2 does not contain `python`, so it receives a score of zero.
+
+The resulting ranking is approximately:
 
 ```python
 [
@@ -568,13 +610,15 @@ The expected ranking, with scores rounded for presentation, is:
 ]
 ```
 
-This example demonstrates how TF affects the ranking while IDF remains constant for the same term across the collection.
+This example demonstrates how TF affects the ranking while IDF remains constant for the same term within a fixed collection.
 
-The third document remains in the output because the task requires the function to return all documents, including those with zero scores.
+Document 2 remains in the results because the function is required to return every document, including those with zero scores.
+
+---
 
 ## 8. Explaining the `bm25_rank()` Function
 
-The ranking function brings together the components described above.
+The ranking function combines tokenization, collection statistics, the inverted index, BM25 scoring, and sorting.
 
 ### Step 1: Tokenize the query
 
@@ -582,7 +626,7 @@ The ranking function brings together the components described above.
 query_token = tokenize(query)
 ```
 
-The query is converted into a list of normalized terms.
+The query is converted into lowercase alphanumeric terms.
 
 ### Step 2: Tokenize the documents and record their lengths
 
@@ -596,9 +640,9 @@ for doc in docs:
     doc_length.append(len(tokens))
 ```
 
-The function stores the tokenized documents and calculates the length of each document.
+This stores the tokenized documents and the length of each document.
 
-### Step 3: Calculate collection statistics
+### Step 3: Calculate the collection statistics
 
 ```python
 N = len(docs_tokens)
@@ -606,11 +650,11 @@ avgdl = sum(doc_length)/len(doc_length)
 index = build_inverted_index(docs_tokens)
 ```
 
-These lines calculate the number of documents, average document length, and inverted index.
+These statements calculate the total number of documents, average document length, and inverted index.
 
-The empty-collection case needs to be handled before calculating `avgdl`; otherwise, division by zero occurs.
+An empty document collection must be handled before calculating `avgdl`, otherwise the function raises `ZeroDivisionError`.
 
-### Step 4: Score every document
+### Step 4: Initialize the results and score each document
 
 ```python
 result = []
@@ -619,30 +663,31 @@ for doc_id in range(N):
     score = 0
 ```
 
-The outer loop visits every document and initializes its score to zero.
+Every document starts with a score of zero.
 
-### Step 5: Process each query term
+### Step 5: Process the query terms
 
 ```python
 for term in query_token:
     if term in index:
 ```
 
-Only terms present in the index enter the scoring calculation.
+The function checks whether each query term exists in the index. Terms absent from the collection contribute nothing and are skipped.
 
 ### Step 6: Retrieve TF, DF, and IDF
 
 ```python
 tf = index[term].get(doc_id, 0)
 df = len(index[term])
-idf = math.log(1 + (N - df + 0.5) / (df + 0.5))
-```
 
-These lines implement the central statistical part of the algorithm.
+idf = math.log(
+    1 + (N - df + 0.5) / (df + 0.5)
+)
+```
 
 TF is specific to the current document, whereas DF and IDF depend on the collection.
 
-### Step 7: Apply document-length normalization
+### Step 7: Calculate and accumulate the BM25 contribution
 
 ```python
 dl = doc_length[doc_id]
@@ -652,7 +697,7 @@ score += idf * (tf * (k1 + 1)) / (
 )
 ```
 
-The score accumulates the BM25 contribution of the current query term.
+The function calculates the term's contribution and adds it to the current document's score.
 
 ### Step 8: Store and sort the results
 
@@ -664,25 +709,27 @@ result.sort(key=lambda content: (-content[1], content[0]))
 return result
 ```
 
-The function records every document's score, sorts the results by descending score, and uses ascending document ID as a tie-breaker.
+Each document's score is stored as a tuple. The results are sorted by descending score, with ascending document ID used to break ties.
+
+---
 
 ## 9. Why I Chose `.sort()` Instead of `sorted()`
 
-Python provides two common approaches to sorting: the list method `.sort()` and the built-in function `sorted()`.
+Python provides two common ways to sort collections: the list method `.sort()` and the built-in function `sorted()`.
 
-My implementation uses `.sort()` because I was comfortable mutating the initial list of document scores.
+I chose `.sort()` because I was comfortable mutating the initial list of document scores.
 
-After calculating the scores, I did not need to preserve the order in which documents were processed. The list existed specifically to hold the final ranking.
+Once the scores had been calculated, I no longer needed to preserve the order in which documents were processed. The list existed specifically to hold the final ranking.
 
-### `.sort()` — modifies the existing list
+### Using `.sort()`
 
 ```python
 result.sort(key=lambda item: (-item[1], item[0]))
 ```
 
-The list is reordered in place, and the method returns `None`.
+This sorts the existing list in place and returns `None`.
 
-### `sorted()` — returns a new list
+### Using `sorted()`
 
 ```python
 ranked_result = sorted(
@@ -691,7 +738,9 @@ ranked_result = sorted(
 )
 ```
 
-The original list remains unchanged, and a separate sorted list is returned.
+This creates and returns a new sorted list, leaving the original list unchanged.
+
+### Comparison
 
 | Feature | `.sort()` | `sorted()` |
 |---|---|---|
@@ -700,78 +749,64 @@ The original list remains unchanged, and a separate sorted list is returned.
 | Accepts arbitrary iterables | No, it is a list method | Yes |
 | Appropriate for this task | Yes | Also valid |
 
-### Why `.sort()` is justified here
+### System-level justification
 
-The result list is created locally inside `bm25_rank()`. Nothing else in the function depends on its original ordering after the scoring loop finishes.
+The result list is created locally inside `bm25_rank()`. No other part of the function depends on its original order after the scoring loop finishes.
 
 Using `.sort()` therefore avoids creating a separate result list when the original list can safely be reordered.
 
-The key:
+The sorting key also establishes the required ranking contract:
 
 ```python
 (-item[1], item[0])
 ```
 
-also establishes the required ranking contract:
-
-- Negative scores sort higher-scoring documents first.
-- Document IDs sort in ascending order when scores are equal.
+- The negative score puts higher-scoring documents first.
+- The document ID puts lower IDs first when scores are equal.
 
 The decision is based on the ownership and intended use of the list, not on the assumption that `.sort()` is always faster or better than `sorted()`.
+
+---
 
 ## 10. Lessons Learned
 
 ### Lesson 1: Data structures influence system behavior
 
-The inverted index makes it possible to retrieve term-level information efficiently.
+The inverted index makes term-level information easier to retrieve. Its structure directly supports the calculation of TF, DF, and IDF.
 
-Its design directly supports TF, DF, and IDF calculations. This reinforced the importance of choosing data structures based on the operations the system needs to perform.
+### Lesson 2: TF and DF measure different things
 
-### Lesson 2: TF and DF must not be confused
-
-TF measures occurrences within an individual document. DF counts the number of distinct documents containing a term.
-
-The distinction is essential because a word can occur many times in one document but still have a low document frequency across the collection.
+TF counts occurrences within an individual document, while DF counts the number of documents containing a term. Confusing the two would lead to incorrect statistical calculations.
 
 ### Lesson 3: IDF provides collection-level context
 
-A term's importance depends partly on how widely it is distributed across the document collection.
-
-IDF provides that context, helping BM25 distinguish common terms from more discriminative terms.
+A term's usefulness depends partly on how widely it is distributed across the collection. IDF helps distinguish common terms from more discriminative terms.
 
 ### Lesson 4: Relevance is a combination of signals
 
-BM25 combines term frequency, inverse document frequency, and document-length normalization.
+BM25 combines term frequency, inverse document frequency, and document-length normalization instead of relying only on the number of matching words.
 
-This is more informative than ranking documents based only on the number of matching words.
+### Lesson 5: Correct formulas do not guarantee robust software
 
-### Lesson 5: Mathematical correctness is only one part of software correctness
-
-The formula can be implemented correctly while the function still fails on an empty document collection.
-
-Input validation, edge cases, and clear contracts are therefore important parts of implementing an algorithm reliably.
+The scoring formula can be implemented correctly while the surrounding function still fails on an empty document collection. Input contracts, edge cases, and tests are also part of correctness.
 
 ### Lesson 6: Sorting rules should be explicit
 
-Using a composite key ensures that the ranking is deterministic when scores are equal.
-
-This is valuable for predictable test results and reproducible behavior.
+A composite sorting key produces deterministic results when scores are equal. This improves predictability and makes testing easier.
 
 ### Lesson 7: Mutation is a design decision
 
-Using `.sort()` is appropriate because the result list does not need to preserve its initial ordering.
-
-The broader lesson is that modifying an object is acceptable when its ownership and subsequent use make that behavior safe.
+Using `.sort()` is appropriate because the result list does not need to preserve its original ordering. Mutation is reasonable when ownership and subsequent use make it safe.
 
 ### Lesson 8: Index construction and ranking have different responsibilities
 
-Index construction depends on the document collection, while query-time ranking depends on the query and collection statistics.
+Index construction depends on the document collection, whereas query-time ranking depends on the query and collection statistics. Separating these responsibilities can avoid repeated work.
 
-Separating these responsibilities can prevent unnecessary work when the same collection is queried repeatedly.
+---
 
 ## 11. Refactoring Opportunities and System Justification
 
-The objective of refactoring is not simply to shorten the code. Improvements should address correctness, maintainability, or measurable system requirements.
+Refactoring should address correctness, maintainability, or measurable system requirements rather than simply making code shorter.
 
 ### Priority 1: Handle an empty document collection
 
@@ -781,18 +816,16 @@ The objective of refactoring is not simply to shorten the code. Improvements sho
 avgdl = sum(doc_length)/len(doc_length)
 ```
 
-When `docs` is empty, this raises `ZeroDivisionError`.
+When `docs` is empty, the denominator is zero.
 
-A reasonable policy for this function is to return an empty list:
+A reasonable policy for this function is to return an empty list before calculating the average:
 
 ```python
 if not docs:
     return []
 ```
 
-This check should occur before calculating the average document length.
-
-Alternatively, the application could explicitly reject empty collections with `ValueError`. The important point is to define the contract.
+Alternatively, the application could reject empty collections with a deliberate `ValueError`. The important point is to define the function's contract.
 
 ### Priority 2: Define repeated-query-term behavior
 
@@ -802,31 +835,31 @@ The current loop processes every occurrence of a query term:
 for term in query_token:
 ```
 
-As a result, `"python python"` adds the contribution of `python` twice.
+Consequently, the query `"python python"` adds the contribution of `python` twice.
 
-This may be intentional in a model that uses query-term frequency, but it should not happen accidentally.
+This may be intentional in a ranking model that incorporates query-term frequency, but the behavior should be explicit.
 
-If each unique query term should contribute only once, an ordered deduplication approach is:
+If each distinct query term should contribute only once, an ordered deduplication approach is:
 
 ```python
 for term in dict.fromkeys(query_token):
 ```
 
-This changes scoring behavior, so the expected task semantics and tests should determine whether it is appropriate.
+This changes ranking semantics, so the expected behavior and tests should determine whether it is appropriate.
 
-### Priority 3: Reuse the inverted index for multiple queries
+### Priority 3: Reuse the inverted index across queries
 
-The current implementation tokenizes all documents and builds the inverted index every time `bm25_rank()` is called.
+The current implementation tokenizes all documents and rebuilds the index on every call.
 
-That is reasonable for a small exercise. For a service handling many queries against a stable collection, it repeats expensive collection-dependent work.
+That is reasonable for a small coding exercise. However, a retrieval service that handles many queries against the same collection would repeat expensive collection-dependent work.
 
-A more scalable design would separate index construction from ranking and reuse the index and document statistics across queries.
+A more scalable design would separate index construction from query-time ranking and reuse the index, document lengths, and collection statistics.
 
-This is the most significant architectural improvement if the system is expected to serve multiple queries.
+This is the most consequential architectural improvement if the system is expected to serve multiple queries.
 
 ### Priority 4: Simplify frequency counting
 
-The manual frequency-counting logic is correct, but Python's `Counter` can make its intention more explicit:
+The manual counting logic is correct, but Python's `Counter` can make its intention clearer:
 
 ```python
 from collections import Counter
@@ -834,9 +867,9 @@ from collections import Counter
 counts = Counter(tokens)
 ```
 
-This is a readability and maintainability improvement, not a necessary correctness fix.
+This is a readability improvement rather than a necessary correctness fix.
 
-### Priority 5: Use `enumerate()` and clearer names
+### Priority 5: Use `enumerate()` and clearer variable names
 
 Instead of:
 
@@ -851,13 +884,13 @@ use:
 for doc_id, tokens in enumerate(docs_tokens):
 ```
 
-Likewise, `term` and `frequency` are more descriptive than `key` and `counts[key]` when iterating through the counts dictionary.
+Likewise, using names such as `term` and `frequency` can make dictionary operations easier to understand.
 
-These changes improve readability without changing the algorithm.
+These are maintainability improvements, not fundamental algorithmic changes.
 
 ### Priority 6: Extract intermediate scoring variables
 
-The current BM25 expression is mathematically valid, but its components could be made easier to inspect:
+The current formula can be made easier to inspect by separating the normalization and TF contribution:
 
 ```python
 length_norm = 1 - b + b * dl / avgdl
@@ -871,21 +904,21 @@ tf_weight = (
 score += idf * tf_weight
 ```
 
-This makes the implementation easier to compare with the formula and simplifies debugging.
+This makes the code easier to compare with the mathematical definition and debug.
 
 ### Priority 7: Validate BM25 parameters
 
-A reusable component should reject invalid parameter values rather than silently produce unexpected scores.
+For conventional BM25 usage, `k1` should be non-negative and `b` should lie between 0 and 1.
 
-For conventional BM25 usage, `k1` should be non-negative and `b` should lie between 0 and 1. An implementation could validate these conditions and reject non-finite parameter values.
+A reusable component should validate these parameters and reject invalid or non-finite values rather than silently producing unintended scores.
 
 ### Priority 8: Precompute IDF values
 
-For a fixed document collection, a term's DF and IDF do not change between documents.
+For a fixed collection, a term's DF and IDF remain constant across documents.
 
-The current implementation recalculates IDF inside the nested scoring loop. Precomputing the IDF for each distinct query term would avoid repeated calculations.
+The current implementation recalculates IDF inside the scoring loop. Precomputing IDF for the distinct query terms would avoid repeated calculations.
 
-This is a worthwhile optimization when the collection or query workload grows, but it is not necessary to understand or validate the core algorithm.
+This becomes more valuable as the collection or query workload grows.
 
 ### Priority 9: Add tests for edge cases
 
@@ -898,50 +931,70 @@ I would test:
 - Equal scores and document-ID tie-breaking.
 - Repeated query terms.
 - Repeated occurrences of a query term within a document.
-- Invalid parameter values, if validation is implemented.
+- Invalid BM25 parameters, if validation is introduced.
 
-Tests should capture the intended behavior before refactoring. This makes it possible to improve the implementation without accidentally changing its contract.
+Tests should capture the intended behavior before refactoring so that improvements do not accidentally change the function's contract.
+
+---
 
 ## 12. Complexity Analysis
 
 Let:
 
-- \(N\) be the number of documents.
-- \(T\) be the total number of tokens in the document collection.
-- \(Q\) be the number of query tokens.
-- \(C\) be the total number of characters in the input documents.
+- `N` be the number of documents.
+- `T` be the total number of tokens in the collection.
+- `Q` be the number of query tokens.
+- `C` be the total number of characters in the document collection.
 
-Ignoring the extra cost of repeated immutable-string concatenation, tokenization is linear in the input character count, or \(O(C)\).
+### Tokenization
 
-Building the inverted index takes expected \(O(T)\) time because the implementation processes each token and then visits the unique terms in each document.
+The tokenizer traverses the input characters. Its expected traversal cost is linear in the input size, although repeated immutable-string concatenation can increase the cost for very long tokens.
 
-The scoring loop examines every document against every query token:
+### Inverted-index construction
 
-\[
-O(NQ)
-\]
+The index builder counts document terms and stores their frequencies. Assuming expected constant-time dictionary operations, the time complexity is:
 
-Sorting the results takes:
+```text
+O(T)
+```
 
-\[
-O(N\log N)
-\]
+### BM25 scoring
 
-Therefore, a simplified expected time-complexity bound is:
+The outer loop visits every document, and the inner loop visits every query token.
 
-\[
-O(C+T+NQ+N\log N)
-\]
+The scoring phase therefore has time complexity:
+
+```text
+O(N * Q)
+```
+
+### Sorting
+
+Sorting the `N` results has typical time complexity:
+
+```text
+O(N log N)
+```
+
+### Overall complexity
+
+A simplified expected time-complexity bound is:
+
+```text
+O(C + T + N*Q + N log N)
+```
 
 This excludes query-tokenization cost, which is proportional to the query's character count, and assumes expected constant-time dictionary operations.
 
-### What this means for the system
+### System implications
 
-The inverted index supports efficient term lookups, but the implementation still evaluates every document for every query.
+The inverted index supports efficient term lookups, but the current implementation still evaluates every document for every query.
 
-For a small collection, this is a reasonable design because it is straightforward and returns a score for every document.
+For a small collection, this is reasonable because it keeps the implementation straightforward and returns a score for every document.
 
-For a larger system, the index could be reused across queries and the scoring process could focus on documents containing query terms. If the interface still requires every document to be returned, zero-score documents would need to be included in the final results.
+For a larger system, the index could be reused across queries, and scoring could focus on documents containing query terms. If the function must still return every document, zero-score documents would need to be included in the final results.
+
+---
 
 ## 13. Connection to Retrieval-Augmented Generation (RAG)
 
@@ -969,30 +1022,34 @@ Language Model
 Generated Answer
 ```
 
-BM25 helps determine which documents should be considered relevant enough to provide to a language model.
+BM25 helps determine which documents should be considered relevant enough to provide as context to a language model.
 
-It is particularly useful when exact terminology matters, such as searching technical manuals, equipment identifiers, code documentation, and error messages.
+It is useful when exact terminology matters, such as searching technical manuals, equipment identifiers, code documentation, and error messages.
 
 However, BM25 relies on lexical matching and statistical term weighting. It does not inherently understand synonyms or paraphrases.
 
-A query about preventing structural failure may be relevant to a document discussing proactive maintenance even when the two expressions share few terms.
+For example, a query about preventing structural failure might be relevant to a document discussing proactive maintenance, even if the two expressions share few terms.
 
-Dense vector retrieval can help identify semantically related passages. Combining lexical and dense retrieval produces hybrid search, while a reranker can further assess the relevance of retrieved candidates.
+Dense vector retrieval can help identify semantically related passages. Combining lexical and dense retrieval produces hybrid search, while a reranker can further evaluate the relevance of retrieved candidates.
 
 BM25 therefore provides a useful, interpretable baseline for understanding the retrieval component of a RAG system.
 
+---
+
 ## 14. Further Experiments
 
-To deepen my understanding, I would explore the following experiments:
+To deepen my understanding, I would explore the following:
 
 1. **Term-frequency saturation:** Compare documents with different TF values and observe how `k1` affects their scores.
 2. **Document-length normalization:** Keep TF constant while changing document length and varying `b`.
 3. **Document-frequency effects:** Add documents containing a query term and observe how its IDF changes.
 4. **Repeated query terms:** Compare `"python"` with `"python python"` and decide whether repeated query terms should influence the score.
-5. **Index reuse:** Compare rebuilding the index for each query against reusing a precomputed index.
-6. **Hybrid retrieval:** Compare BM25 results with dense retrieval results for queries involving synonyms and paraphrases.
+5. **Index reuse:** Compare rebuilding the index for every query against reusing a precomputed index.
+6. **Hybrid retrieval:** Compare BM25 with dense retrieval for queries involving synonyms and paraphrases.
 
-These experiments would help evaluate both retrieval quality and the trade-offs involved in implementing a search system.
+These experiments would help evaluate both retrieval quality and the computational trade-offs involved in building a search system.
+
+---
 
 ## 15. Final Reflection
 
